@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Type Generator — Coffee Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --espresso: #1A1614;
+      --dark-roast: #2C2520;
+      --medium-roast: #4A3C32;
+      --crema: #D4A574;
+      --steam: #E8E4DF;
+      --milk: #F5F2ED;
+      --sage: #7D9B76;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--milk);
+      min-height: 100vh;
+      color: var(--espresso);
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      min-height: 100vh;
+    }
+
+    /* Left Panel - Controls */
+    .controls-panel {
+      background: var(--steam);
+      border-right: 1px solid rgba(0,0,0,0.08);
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
+    .panel-section {
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--medium-roast);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 12px;
+      height: 1px;
+      background: var(--crema);
+    }
+
+    /* Sliders */
+    .slider-group {
+      margin-bottom: 12px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--medium-roast);
+      margin-bottom: 6px;
+    }
+
+    .slider-value {
+      font-weight: 700;
+      color: var(--espresso);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--crema);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 2px 8px rgba(212, 165, 116, 0.4);
+    }
+
+    /* Color Pickers */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .color-label {
+      font-size: 11px;
+      color: var(--medium-roast);
+      flex: 1;
+    }
+
+    .color-picker-wrapper {
+      position: relative;
+      width: 40px;
+      height: 26px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 100%;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 2px;
+    }
+
+    /* Preset Buttons */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .preset-btn {
+      background: white;
+      border: 1px solid rgba(0,0,0,0.1);
+      padding: 10px 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .preset-btn:hover {
+      background: var(--crema);
+      border-color: var(--crema);
+      color: white;
+    }
+
+    .preset-btn.active {
+      background: var(--espresso);
+      border-color: var(--espresso);
+      color: white;
+    }
+
+    /* Main Canvas Area */
+    .canvas-area {
+      background: var(--milk);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #three-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Coffee steam decoration */
+    .steam-deco {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      display: flex;
+      gap: 8px;
+      opacity: 0.3;
+    }
+
+    .steam-line {
+      width: 3px;
+      height: 40px;
+      background: linear-gradient(to top, var(--crema), transparent);
+      border-radius: 50%;
+      animation: steam-float 3s ease-in-out infinite;
+    }
+
+    .steam-line:nth-child(2) { animation-delay: 0.5s; height: 30px; }
+    .steam-line:nth-child(3) { animation-delay: 1s; height: 25px; }
+
+    @keyframes steam-float {
+      0%, 100% { transform: translateY(0) scaleX(1); opacity: 0.3; }
+      50% { transform: translateY(-15px) scaleX(1.2); opacity: 0.5; }
+    }
+
+    /* Right Panel - Info & Text Input */
+    .info-panel {
+      background: var(--espresso);
+      color: var(--steam);
+      padding: 25px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logo-section {
+      margin-bottom: 30px;
+      padding-bottom: 25px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .logo-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      margin-bottom: 8px;
+    }
+
+    .logo-subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 2px;
+    }
+
+    /* Text Input */
+    .text-input-section {
+      margin-bottom: 25px;
+    }
+
+    .text-input-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 10px;
+    }
+
+    .text-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 15px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--steam);
+      resize: vertical;
+      min-height: 80px;
+      border-radius: 4px;
+      transition: border-color 0.3s;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: var(--crema);
+    }
+
+    .text-input::placeholder {
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    .action-btn {
+      flex: 1;
+      background: var(--crema);
+      border: none;
+      padding: 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--espresso);
+    }
+
+    .action-btn:hover {
+      background: #e0b585;
+      transform: translateY(-2px);
+    }
+
+    .action-btn.secondary {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--steam);
+    }
+
+    .action-btn.secondary:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Info Section */
+    .info-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-block {
+      margin-bottom: 20px;
+    }
+
+    .info-block p {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .coffee-tip {
+      background: rgba(212, 165, 116, 0.1);
+      border-left: 3px solid var(--crema);
+      padding: 15px;
+      margin-top: auto;
+    }
+
+    .coffee-tip-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--crema);
+      margin-bottom: 8px;
+    }
+
+    .coffee-tip p {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.6);
+      font-style: italic;
+    }
+
+    /* Animation toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .toggle-label {
+      font-size: 11px;
+      color: var(--medium-roast);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .toggle-switch.active {
+      background: var(--sage);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+
+    /* Footer */
+    .panel-footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 15px;
+      font-size: 11px;
+    }
+
+    .footer-link {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover {
+      color: var(--crema);
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .app-container {
+        grid-template-columns: 260px 1fr 280px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .app-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 60vh auto;
+      }
+
+      .controls-panel {
+        max-height: none;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+
+      .panel-section {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+    }
+
+    /* Loading state */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--milk);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .loading-cup {
+      width: 60px;
+      height: 50px;
+      border: 3px solid var(--crema);
+      border-radius: 0 0 30px 30px;
+      position: relative;
+      animation: cup-fill 2s ease-in-out infinite;
+    }
+
+    @keyframes cup-fill {
+      0%, 100% { background: linear-gradient(to top, var(--crema) 0%, transparent 0%); }
+      50% { background: linear-gradient(to top, var(--crema) 70%, transparent 70%); }
+    }
+
+    .loading-text {
+      margin-top: 20px;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--medium-roast);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Panel - Controls -->
+    <div class="controls-panel">
+      <!-- Cylinder Controls -->
+      <div class="panel-section">
+        <h3 class="section-title">Cylinder</h3>
+        
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>RADIUS</span>
+            <span class="slider-value" id="radius-val">200</span>
+          </div>
+          <input type="range" id="radius" min="100" max="400" value="200" oninput="updateParam('radius', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>COUNT</span>
+            <span class="slider-value" id="count-val">1</span>
+          </div>
+          <input type="range" id="count" min="1" max="5" value="1" oninput="updateParam('count', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>ROTATE</span>
+            <span class="slider-value" id="rotate-val">0</span>
+          </div>
+          <input type="range" id="rotate" min="-180" max="180" value="0" oninput="updateParam('rotate', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>OFFSET</span>
+            <span class="slider-value" id="offset-val">0</span>
+          </div>
+          <input type="range" id="offset" min="-100" max="100" value="0" oninput="updateParam('offset', this.value)">
+        </div>
+      </div>
+
+      <!-- Wave Controls -->
+      <div class="panel-section">
+        <h3 class="section-title">Wave</h3>
+        
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>COUNT</span>
+            <span class="slider-value" id="waveCount-val">2</span>
+          </div>
+          <input type="range" id="waveCount" min="0" max="10" value="2" oninput="updateParam('waveCount', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>SPEED</span>
+            <span class="slider-value" id="waveSpeed-val">50</span>
+          </div>
+          <input type="range" id="waveSpeed" min="0" max="200" value="50" oninput="updateParam('waveSpeed', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>AMPLITUDE</span>
+            <span class="slider-value" id="waveAmp-val">20</span>
+          </div>
+          <input type="range" id="waveAmp" min="0" max="100" value="20" oninput="updateParam('waveAmp', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>RIPPLE</span>
+            <span class="slider-value" id="ripple-val">0</span>
+          </div>
+          <input type="range" id="ripple" min="0" max="50" value="0" oninput="updateParam('ripple', this.value)">
+        </div>
+      </div>
+
+      <!-- Type Controls -->
+      <div class="panel-section">
+        <h3 class="section-title">Typography</h3>
+        
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>SIZE</span>
+            <span class="slider-value" id="fontSize-val">40</span>
+          </div>
+          <input type="range" id="fontSize" min="20" max="100" value="40" oninput="updateParam('fontSize', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>SPACING</span>
+            <span class="slider-value" id="spacing-val">5</span>
+          </div>
+          <input type="range" id="spacing" min="0" max="30" value="5" oninput="updateParam('spacing', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>WEIGHT</span>
+            <span class="slider-value" id="weight-val">400</span>
+          </div>
+          <input type="range" id="weight" min="100" max="900" value="400" step="100" oninput="updateParam('weight', this.value)">
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="panel-section">
+        <h3 class="section-title">Colors</h3>
+        
+        <div class="color-row">
+          <span class="color-label">Type Color</span>
+          <div class="color-picker-wrapper">
+            <input type="color" id="typeColor" value="#1A1614" onchange="updateParam('typeColor', this.value)">
+          </div>
+        </div>
+
+        <div class="color-row">
+          <span class="color-label">Background</span>
+          <div class="color-picker-wrapper">
+            <input type="color" id="bgColor" value="#F5F2ED" onchange="updateParam('bgColor', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera -->
+      <div class="panel-section">
+        <h3 class="section-title">Camera</h3>
+        
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>X ROTATION</span>
+            <span class="slider-value" id="camX-val">15</span>
+          </div>
+          <input type="range" id="camX" min="-90" max="90" value="15" oninput="updateParam('camX', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Y ROTATION</span>
+            <span class="slider-value" id="camY-val">0</span>
+          </div>
+          <input type="range" id="camY" min="-180" max="180" value="0" oninput="updateParam('camY', this.value)">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>ZOOM</span>
+            <span class="slider-value" id="zoom-val">1</span>
+          </div>
+          <input type="range" id="zoom" min="0.5" max="2" value="1" step="0.1" oninput="updateParam('zoom', this.value)">
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="panel-section">
+        <h3 class="section-title">Presets</h3>
+        <div class="presets-grid">
+          <button class="preset-btn active" onclick="applyPreset('simple')">Simple</button>
+          <button class="preset-btn" onclick="applyPreset('espresso')">Espresso</button>
+          <button class="preset-btn" onclick="applyPreset('latte')">Latte Art</button>
+          <button class="preset-btn" onclick="applyPreset('steam')">Steam</button>
+          <button class="preset-btn" onclick="applyPreset('pour')">Pour Over</button>
+          <button class="preset-btn" onclick="applyPreset('chaos')">Chaos</button>
+        </div>
+      </div>
+
+      <!-- Animation Toggle -->
+      <div class="panel-section">
+        <div class="toggle-row">
+          <span class="toggle-label">Animation</span>
+          <div class="toggle-switch active" id="animToggle" onclick="toggleAnimation()"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Auto Rotate</span>
+          <div class="toggle-switch" id="autoRotate" onclick="toggleAutoRotate()"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <div class="canvas-area">
+      <canvas id="three-canvas"></canvas>
+      <div class="steam-deco">
+        <div class="steam-line"></div>
+        <div class="steam-line"></div>
+        <div class="steam-line"></div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Info -->
+    <div class="info-panel">
+      <div class="logo-section">
+        <h1 class="logo-title">SPACE TYPE GENERATOR</h1>
+        <p class="logo-subtitle">_v.COFFEE EDITION 1.0</p>
+      </div>
+
+      <div class="text-input-section">
+        <label class="text-input-label">Your Text</label>
+        <textarea class="text-input" id="textInput" placeholder="BREW-YOUR-WORDS-//" oninput="updateText()">SLOW-BREW-GOOD-THINGS;//</textarea>
+      </div>
+
+      <div class="quick-actions">
+        <button class="action-btn" onclick="randomize()">Randomize</button>
+        <button class="action-btn secondary" onclick="resetAll()">Reset</button>
+      </div>
+
+      <div class="info-content">
+        <div class="info-block">
+          <p>
+            A kinetic type generator for creating mesmerizing text animations. 
+            Perfect for moving posters, web design, and experimental typography.
+          </p>
+        </div>
+
+        <div class="info-block">
+          <p>
+            Adjust the cylinder radius, wave parameters, and typography settings 
+            to craft your unique motion. Use presets as starting points.
+          </p>
+        </div>
+
+        <div class="coffee-tip">
+          <div class="coffee-tip-title">☕ Brew Tip</div>
+          <p>
+            Like a perfect pour-over, great typography needs patience. 
+            Let your text steep in motion—the best designs reveal themselves slowly.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <div class="footer-links">
+          <a href="#" class="footer-link">Export GIF</a>
+          <a href="#" class="footer-link">Save Settings</a>
+          <a href="#" class="footer-link">About</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Parameters
+    let params = {
+      radius: 200,
+      count: 1,
+      rotate: 0,
+      offset: 0,
+      waveCount: 2,
+      waveSpeed: 50,
+      waveAmp: 20,
+      ripple: 0,
+      fontSize: 40,
+      spacing: 5,
+      weight: 400,
+      typeColor: '#1A1614',
+      bgColor: '#F5F2ED',
+      camX: 15,
+      camY: 0,
+      zoom: 1
+    };
+
+    let text = 'SLOW-BREW-GOOD-THINGS;//';
+    let isAnimating = true;
+    let isAutoRotating = false;
+    let time = 0;
+
+    // Three.js setup
+    const canvas = document.getElementById('three-canvas');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+
+    let textMeshes = [];
+    let group = new THREE.Group();
+    scene.add(group);
+
+    function init() {
+      updateSize();
+      camera.position.z = 600;
+      updateScene();
+      animate();
+    }
+
+    function updateSize() {
+      const container = canvas.parentElement;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+
+    function createTextTexture(char, color, size, weight) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = size * 2;
+      canvas.height = size * 2;
+      
+      ctx.fillStyle = 'transparent';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.font = `${weight} ${size}px "Space Mono", monospace`;
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(char, canvas.width / 2, canvas.height / 2);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    function updateScene() {
+      // Clear existing
+      while (group.children.length > 0) {
+        const child = group.children[0];
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+        group.remove(child);
+      }
+      textMeshes = [];
+
+      // Update background
+      renderer.setClearColor(params.bgColor);
+
+      // Create text on cylinder
+      const chars = text.split('');
+      const angleStep = (Math.PI * 2) / chars.length;
+      
+      for (let c = 0; c < params.count; c++) {
+        const offsetAngle = (c / params.count) * Math.PI * 2;
+        const yOffset = c * params.offset;
+
+        chars.forEach((char, i) => {
+          const texture = createTextTexture(char, params.typeColor, params.fontSize * 2, params.weight);
+          const material = new THREE.SpriteMaterial({ 
+            map: texture, 
+            transparent: true,
+            depthTest: false
+          });
+          const sprite = new THREE.Sprite(material);
+          
+          const angle = i * angleStep + offsetAngle + THREE.MathUtils.degToRad(params.rotate);
+          sprite.userData = {
+            baseAngle: angle,
+            index: i,
+            yOffset: yOffset
+          };
+          
+          sprite.scale.set(params.fontSize, params.fontSize, 1);
+          textMeshes.push(sprite);
+          group.add(sprite);
+        });
+      }
+
+      updatePositions();
+    }
+
+    function updatePositions() {
+      const chars = text.split('');
+      
+      textMeshes.forEach((sprite, idx) => {
+        const { baseAngle, index, yOffset } = sprite.userData;
+        
+        // Wave animation
+        let wave = 0;
+        if (params.waveCount > 0) {
+          wave = Math.sin(baseAngle * params.waveCount + time * (params.waveSpeed / 100)) * params.waveAmp;
+        }
+        
+        // Ripple effect
+        let rippleOffset = 0;
+        if (params.ripple > 0) {
+          rippleOffset = Math.sin(time * 2 + index * 0.5) * params.ripple;
+        }
+        
+        const currentAngle = baseAngle + (isAutoRotating ? time * 0.5 : 0);
+        const radius = params.radius + rippleOffset;
+        
+        const x = Math.sin(currentAngle) * radius;
+        const z = Math.cos(currentAngle) * radius;
+        const y = wave + yOffset;
+        
+        sprite.position.set(x, y, z);
+        
+        // Face camera (billboard)
+        sprite.lookAt(camera.position);
+      });
+
+      // Camera rotation
+      group.rotation.x = THREE.MathUtils.degToRad(params.camX);
+      group.rotation.y = THREE.MathUtils.degToRad(params.camY);
+      
+      // Zoom
+      camera.position.z = 600 / params.zoom;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      if (isAnimating || isAutoRotating) {
+        time += 0.016;
+        updatePositions();
+      }
+      
+      renderer.render(scene, camera);
+    }
+
+    // Control functions
+    function updateParam(name, value) {
+      const numValue = parseFloat(value);
+      params[name] = isNaN(numValue) ? value : numValue;
+      
+      const valEl = document.getElementById(`${name}-val`);
+      if (valEl) valEl.textContent = value;
+      
+      if (['typeColor', 'bgColor', 'fontSize', 'weight', 'count', 'offset', 'spacing'].includes(name)) {
+        updateScene();
+      } else {
+        updatePositions();
+      }
+    }
+
+    function updateText() {
+      text = document.getElementById('textInput').value || 'TYPE-SOMETHING';
+      updateScene();
+    }
+
+    function toggleAnimation() {
+      isAnimating = !isAnimating;
+      document.getElementById('animToggle').classList.toggle('active', isAnimating);
+    }
+
+    function toggleAutoRotate() {
+      isAutoRotating = !isAutoRotating;
+      document.getElementById('autoRotate').classList.toggle('active', isAutoRotating);
+    }
+
+    // Presets
+    const presets = {
+      simple: {
+        radius: 200, count: 1, rotate: 0, offset: 0,
+        waveCount: 2, waveSpeed: 50, waveAmp: 20, ripple: 0,
+        fontSize: 40, spacing: 5, weight: 400,
+        typeColor: '#1A1614', bgColor: '#F5F2ED',
+        camX: 15, camY: 0, zoom: 1
+      },
+      espresso: {
+        radius: 150, count: 2, rotate: 45, offset: 60,
+        waveCount: 3, waveSpeed: 80, waveAmp: 30, ripple: 10,
+        fontSize: 35, spacing: 3, weight: 700,
+        typeColor: '#2C2520', bgColor: '#D4A574',
+        camX: 25, camY: 10, zoom: 0.9
+      },
+      latte: {
+        radius: 250, count: 1, rotate: 0, offset: 0,
+        waveCount: 5, waveSpeed: 30, waveAmp: 40, ripple: 5,
+        fontSize: 45, spacing: 8, weight: 300,
+        typeColor: '#4A3C32', bgColor: '#F5F2ED',
+        camX: 10, camY: 0, zoom: 1.1
+      },
+      steam: {
+        radius: 180, count: 3, rotate: -15, offset: 40,
+        waveCount: 4, waveSpeed: 120, waveAmp: 50, ripple: 20,
+        fontSize: 30, spacing: 2, weight: 400,
+        typeColor: '#8B7355', bgColor: '#E8E4DF',
+        camX: 0, camY: 0, zoom: 0.8
+      },
+      pour: {
+        radius: 220, count: 1, rotate: -5, offset: 0,
+        waveCount: 1, waveSpeed: 60, waveAmp: 15, ripple: 0,
+        fontSize: 50, spacing: 10, weight: 500,
+        typeColor: '#1A1614', bgColor: '#F5F2ED',
+        camX: 20, camY: -10, zoom: 1
+      },
+      chaos: {
+        radius: 180, count: 4, rotate: 30, offset: 30,
+        waveCount: 7, waveSpeed: 150, waveAmp: 60, ripple: 30,
+        fontSize: 28, spacing: 0, weight: 900,
+        typeColor: '#D4A574', bgColor: '#1A1614',
+        camX: 35, camY: 25, zoom: 0.7
+      }
+    };
+
+    function applyPreset(name) {
+      const preset = presets[name];
+      if (!preset) return;
+
+      // Update buttons
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Apply all values
+      Object.entries(preset).forEach(([key, value]) => {
+        params[key] = value;
+        
+        const input = document.getElementById(key);
+        if (input) input.value = value;
+        
+        const valEl = document.getElementById(`${key}-val`);
+        if (valEl) valEl.textContent = value;
+      });
+
+      updateScene();
+    }
+
+    function randomize() {
+      params.radius = 100 + Math.random() * 200;
+      params.count = Math.floor(1 + Math.random() * 4);
+      params.rotate = Math.random() * 180 - 90;
+      params.offset = Math.random() * 80;
+      params.waveCount = Math.floor(Math.random() * 8);
+      params.waveSpeed = Math.random() * 150;
+      params.waveAmp = Math.random() * 80;
+      params.ripple = Math.random() * 30;
+      params.camX = Math.random() * 60 - 30;
+      params.camY = Math.random() * 60 - 30;
+      params.zoom = 0.6 + Math.random() * 0.8;
+
+      // Update UI
+      Object.entries(params).forEach(([key, value]) => {
+        const input = document.getElementById(key);
+        if (input && input.type === 'range') {
+          input.value = value;
+          const valEl = document.getElementById(`${key}-val`);
+          if (valEl) valEl.textContent = Math.round(value * 100) / 100;
+        }
+      });
+
+      updateScene();
+    }
+
+    function resetAll() {
+      applyPreset('simple');
+    }
+
+    // Event listeners
+    window.addEventListener('resize', updateSize);
+
+    // Initialize
+    init();
+  </script>
+</body>
+</html>
